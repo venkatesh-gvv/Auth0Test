@@ -1,47 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Auth0 Test - User Profile</title>
-  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
+  <title>Auth0 Profile Viewer</title>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/1.19/auth0-spa-js.production.js"></script>
 </head>
 <body>
-  <h1>Auth0 Profile Viewer</h1>
-
-  <button id="login">Log In</button>
-  <button id="logout" style="display:none;">Log Out</button>
-
-  <pre id="profile" style="white-space: pre-wrap; background: #eee; padding: 10px;"></pre>
+  <h2>Auth0 Profile Viewer</h2>
+  <button id="login">Login</button>
+  <button id="logout" style="display:none;">Logout</button>
+  <pre id="profile"></pre>
 
   <script>
-    const auth0 = await createAuth0Client({
-      domain: "YOUR_DOMAIN",
-      client_id: "YOUR_CLIENT_ID",
-      redirect_uri: window.location.origin
-    });
+    let auth0 = null;
 
-    // Handle redirect from Auth0
-    if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
-      await auth0.handleRedirectCallback();
-      window.history.replaceState({}, document.title, "/");
-    }
+    const configureClient = async () => {
+      auth0 = await createAuth0Client({
+        domain: "YOUR_AUTH0_DOMAIN",
+        client_id: "YOUR_CLIENT_ID",
+        redirect_uri: window.location.origin
+      });
+    };
 
-    const isAuthenticated = await auth0.isAuthenticated();
+    const login = async () => {
+      await auth0.loginWithRedirect();
+    };
 
-    if (isAuthenticated) {
-      document.getElementById("login").style.display = "none";
-      document.getElementById("logout").style.display = "inline";
-
-      const user = await auth0.getUser();
-      document.getElementById("profile").textContent = JSON.stringify(user, null, 2);
-    }
-
-    document.getElementById("login").addEventListener("click", () => {
-      auth0.loginWithRedirect();
-    });
-
-    document.getElementById("logout").addEventListener("click", () => {
+    const logout = () => {
       auth0.logout({ returnTo: window.location.origin });
-    });
+    };
+
+    const updateUI = async () => {
+      const isAuthenticated = await auth0.isAuthenticated();
+
+      if (isAuthenticated) {
+        document.getElementById("login").style.display = "none";
+        document.getElementById("logout").style.display = "inline-block";
+
+        const user = await auth0.getUser();
+        document.getElementById("profile").textContent = JSON.stringify(user, null, 2);
+      }
+    };
+
+    window.onload = async () => {
+      await configureClient();
+
+      const query = window.location.search;
+      if (query.includes("code=") && query.includes("state=")) {
+        await auth0.handleRedirectCallback();
+        window.history.replaceState({}, document.title, "/");
+      }
+
+      updateUI();
+
+      document.getElementById("login").addEventListener("click", login);
+      document.getElementById("logout").addEventListener("click", logout);
+    };
   </script>
 </body>
 </html>
